@@ -15,10 +15,10 @@ if (servicesDropdown) {
     }
   });
   servicesDropdown.addEventListener('focusout', (event) => {
-    if (!servicesDropdown.contains(event.relatedTarget)) servicesDropdown.open = false;
-  });
-  servicesDropdown.addEventListener('click', (event) => {
-    if (event.target.closest('a')) servicesDropdown.open = false;
+    // Touch browsers can report no next focus target while activating a link.
+    if (event.relatedTarget && !servicesDropdown.contains(event.relatedTarget)) {
+      servicesDropdown.open = false;
+    }
   });
 }
 
@@ -58,9 +58,21 @@ if (toggle && navigation) {
     }
   });
   navigation.addEventListener('click', (event) => {
-    if (smallScreen.matches && event.target.closest('a')) {
+    const link = event.target.closest('a');
+    if (!link || event.defaultPrevented || event.button !== 0 ||
+        event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+        link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+
+    // Preserve the destination before hiding the activated link. Navigate after
+    // collapsing the menu so fragment scrolling uses the final page layout.
+    const destination = link.href;
+    event.preventDefault();
+    if (smallScreen.matches) {
       setOpen(false);
-      toggle.focus();
+      toggle.focus({ preventScroll: true });
+    } else if (servicesDropdown) {
+      servicesDropdown.open = false;
     }
+    window.location.assign(destination);
   });
 }
